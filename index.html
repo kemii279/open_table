@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2次元データ管理テーブル</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* (CSSスタイルは変更なしなので省略。上記のコードをそのまま使用してください) */
+        body {
+            font-family: 'Inter', sans-serif; /* Interフォントを使用 */
+            display: flex;
+            flex-direction: column; /* 縦方向に要素を並べる */
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5; /* 背景色 */
+            color: #333; /* テキスト色 */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap; /* 要素が収まらない場合に折り返す */
+            gap: 15px; /* 要素間のスペース */
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            max-width: 90%;
+            width: 100%;
+            box-sizing: border-box;
+            justify-content: center; /* 中央寄せ */
+        }
+
+        .controls button, .controls select, .controls input {
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px; /* ボタンの角を丸く */
+            font-size: 1rem;
+            cursor: pointer;
+            background-color: #007bff; /* ボタンの背景色 */
+            color: white; /* ボタンのテキスト色 */
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls button:hover {
+            background-color: #0056b3; /* ホバー時の色 */
+            transform: translateY(-1px);
+        }
+
+        .controls input[type="text"] {
+            background-color: #f8f9fa;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            padding: 10px;
+            border-radius: 8px;
+            width: 180px; /* 入力フィールドの幅 */
+        }
+
+        .controls select {
+            background-color: #f8f9fa;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            padding: 10px;
+            border-radius: 8px;
+            min-width: 150px;
+        }
+
+        .table-container {
+            overflow: auto; /* テーブルが画面からはみ出る場合のためにスクロールを可能に */
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 12px; /* 角を丸くする */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* 影 */
+            max-width: 90%; /* 最大幅を設定 */
+            width: 100%; /* 親要素の幅いっぱいに広げる */
+            box-sizing: border-box; /* パディングとボーダーを幅に含める */
+            flex-grow: 1; /* 残りのスペースを埋める */
+        }
+
+        table {
+            border-collapse: collapse; /* セルの境界線を重ねる */
+            width: 100%; /* 親要素の幅いっぱいに広げる */
+            min-width: 600px; /* 小さすぎる画面での最小幅 */
+            background-color: #fff; /* テーブルの背景色 */
+        }
+
+        th, td {
+            border: 1px solid #e0e0e0; /* セルの枠線 */
+            padding: 10px 15px; /* パディング */
+            text-align: center; /* テキスト中央寄せ */
+            min-width: 100px; /* セルの最小幅 */
+            box-sizing: border-box;
+            border-radius: 4px; /* セルの角も少し丸く */
+        }
+
+        th {
+            background-color: #e9e9e9; /* ヘッダーの背景色 */
+            font-weight: 600; /* フォントの太さ */
+            white-space: nowrap; /* 表題が改行されないようにする */
+            position: sticky; /* ヘッダーをスクロールで固定 */
+            top: 0; /* 上部に固定 */
+            z-index: 10; /* 他の要素より手前に表示 */
+        }
+
+        th:first-child {
+            background-color: #dcdcdc; /* 少し濃い色に */
+            left: 0; /* 左端に固定 */
+            z-index: 11; /* 最前面に表示 */
+        }
+
+        th.row-header {
+            text-align: left; /* 左寄せ */
+            background-color: #e9e9e9;
+            position: sticky; /* 行ヘッダーをスクロールで固定 */
+            left: 0; /* 左端に固定 */
+            z-index: 9; /* 他の要素より手前に表示 */
+        }
+
+        td {
+            cursor: pointer; /* クリック可能であることを示すカーソル */
+            transition: background-color 0.2s ease, transform 0.1s ease; /* ホバー時のトランジション */
+            border-radius: 4px; /* セルの角を丸く */
+        }
+
+        td:hover {
+            background-color: #f0f8ff; /* ホバー時の背景色を水色に */
+            transform: translateY(-1px); /* 少し上に浮き上がるエフェクト */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); /* 軽い影を追加 */
+        }
+
+        td.clicked {
+            background-color: #d1ecf1 !important; /* クリック時の背景色 */
+            border: 1px solid #007bff; /* クリック時のボーダー */
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25); /* クリック時のシャドウ */
+        }
+
+        th[contenteditable="true"]:focus {
+            outline: 2px solid #007bff;
+            background-color: #fff;
+        }
+
+        /* 既存のCSSに以下を追加 */
+        /* モーダルダイアログのスタイル */
+        .modal {
+            display: none; /* 初期状態では非表示 */
+            position: fixed; /* 画面に固定 */
+            z-index: 100; /* 他の要素より前面に */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* 必要に応じてスクロール可能に */
+            background-color: rgba(0,0,0,0.4); /* 半透明の黒背景 */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto; /* 上下左右中央に */
+            padding: 30px;
+            border: 1px solid #888;
+            border-radius: 12px;
+            width: 80%; /* 幅 */
+            max-width: 400px; /* 最大幅 */
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .modal-content input[type="text"] {
+            width: calc(100% - 20px); /* パディングを考慮 */
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .modal-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .modal-buttons .confirm {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .modal-buttons .confirm:hover {
+            background-color: #0056b3;
+        }
+
+        .modal-buttons .cancel {
+            background-color: #e0e0e0;
+            color: #333;
+        }
+
+        .modal-buttons .cancel:hover {
+            background-color: #c0c0c0;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button id="newPresetBtn">新規プリセット作成</button><label for="presetNameInput">プリセット名:</label>
+        <input type="text" id="presetNameInput" placeholder="保存プリセット名">
+        <button id="savePresetBtn">プリセット保存</button>
+
+        <label for="presetSelect">プリセット選択:</label>
+        <select id="presetSelect"></select>
+        <button id="loadPresetBtn">プリセット読み込み</button>
+
+        <button id="addColumnBtn">列を追加</button>
+        <button id="addRowBtn">行を追加</button>
+     
+    </div>
+
+    <div class="table-container">
+        <table id="dynamicExcelTable">
+            </table>
+    </div>
+
+    <div id="inputModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">新しい名前を入力</h3>
+            <input type="text" id="modalInput" placeholder="名前を入力してください">
+            <div class="modal-buttons">
+                <button class="confirm" id="modalConfirm">OK</button>
+                <button class="cancel" id="modalCancel">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const table = document.getElementById('dynamicExcelTable');
+            const presetSelect = document.getElementById('presetSelect');
+            const presetNameInput = document.getElementById('presetNameInput');
+            const savePresetBtn = document.getElementById('savePresetBtn');
+            const loadPresetBtn = document.getElementById('loadPresetBtn');
+            const addColumnBtn = document.getElementById('addColumnBtn');
+            const addRowBtn = document.getElementById('addRowBtn');
+            const openFolderBtn = document.getElementById('openFolderBtn');
+             const newPresetBtn = document.getElementById('newPresetBtn'); // 新しいボタンを取得
+
+
+
+            // モーダル関連要素の取得
+            const inputModal = document.getElementById('inputModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalInput = document.getElementById('modalInput');
+            const modalConfirm = document.getElementById('modalConfirm');
+            const modalCancel = document.getElementById('modalCancel');
+
+
+
+// 初期データの定義をここに移す
+        const initialYears = ['工程A', '工程B'];
+        const initialCategories = ['Aさん', 'Bさん'];
+
+        let years = [...initialYears]; // 現在の横カラムデータ
+        let categories = [...initialCategories]; // 現在の縦カラムデータ
+            let allPresets = {}; // 全てのプリセットを保持するオブジェクト
+            let currentPresetName = 'デフォルトプリセット'; // 現在読み込まれているプリセット名
+
+
+            /**
+             * カスタム入力プロンプト関数
+             * @param {string} title - ダイアログのタイトル
+             * @param {string} placeholder - 入力フィールドのプレースホルダー
+             * @returns {Promise<string|null>} ユーザーが入力した文字列、またはキャンセルされた場合はnull
+             */
+            function customPrompt(title, placeholder) {
+                return new Promise(resolve => {
+                    modalTitle.textContent = title;
+                    modalInput.placeholder = placeholder;
+                    modalInput.value = ''; // 入力値をリセット
+                    inputModal.style.display = 'flex'; // モーダルを表示
+
+                    const handleConfirm = () => {
+                        inputModal.style.display = 'none';
+                        resolve(modalInput.value.trim());
+                        cleanupListeners();
+                    };
+
+                    const handleCancel = () => {
+                        inputModal.style.display = 'none';
+                        resolve(null);
+                        cleanupListeners();
+                    };
+
+                    const handleKeydown = (event) => {
+                        if (event.key === 'Enter') {
+                            handleConfirm();
+                        } else if (event.key === 'Escape') {
+                            handleCancel();
+                        }
+                    };
+
+                    modalConfirm.addEventListener('click', handleConfirm);
+                    modalCancel.addEventListener('click', handleCancel);
+                    modalInput.addEventListener('keydown', handleKeydown);
+                    modalInput.focus(); // 入力フィールドにフォーカス
+
+                    const cleanupListeners = () => {
+                        modalConfirm.removeEventListener('click', handleConfirm);
+                        modalCancel.removeEventListener('click', handleCancel);
+                        modalInput.removeEventListener('keydown', handleKeydown);
+                    };
+                });
+            }
+ /**
+             * テーブルを動的に生成する関数
+             */
+            function generateTable() {
+                let headerHtml = '<thead><tr><th></th>';
+                years.forEach((year, index) => {
+                    headerHtml += `<th class="col-header" data-index="${index}" contenteditable="true">${year}</th>`;
+                });
+                headerHtml += '</tr></thead>';
+
+                let bodyHtml = '<tbody>';
+                categories.forEach((category, index) => {
+                    bodyHtml += `<tr><th class="row-header" data-index="${index}" contenteditable="true">${category}</th>`;
+                    years.forEach(year => {
+                        bodyHtml += `<td data-year="${year}" data-category="${category}"></td>`;
+                    });
+                    bodyHtml += '</tr>';
+                });
+                bodyHtml += '</tbody>';
+
+                table.innerHTML = headerHtml + bodyHtml;
+                addHeaderEditListeners();
+                savePresetBtn.click();
+            }
+
+            function addHeaderEditListeners() {
+                document.querySelectorAll('th[contenteditable="true"]').forEach(headerCell => {
+                    headerCell.removeEventListener('blur', handleHeaderEdit);
+                    headerCell.removeEventListener('keydown', handleHeaderKeydown);
+                    headerCell.addEventListener('blur', handleHeaderEdit);
+                    headerCell.addEventListener('keydown', handleHeaderKeydown);
+              
+                });
+            }
+
+
+            function handleHeaderEdit(event) {
+                const cell = event.target;
+                const newName = cell.textContent.trim();
+                const index = parseInt(cell.dataset.index);
+
+                if (cell.classList.contains('col-header')) {
+                    if (newName && newName !== years[index]) {
+                        years[index] = newName;
+                        generateTable();
+                    } else if (!newName) {
+                        cell.textContent = years[index];
+                    }
+                } else if (cell.classList.contains('row-header')) {
+                    if (newName && newName !== categories[index]) {
+                        categories[index] = newName;
+                        generateTable();
+                    } else if (!newName) {
+                        cell.textContent = categories[index];
+                    }
+                }
+            }
+
+            function handleHeaderKeydown(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    event.target.blur();
+                    
+                }
+            }
+
+            generateTable();
+
+            table.addEventListener('click', (event) => {
+                const clickedCell = event.target;
+                if (clickedCell.tagName === 'TD') {
+                    const year = clickedCell.dataset.year;
+                    const category = clickedCell.dataset.category;
+
+                    if (year && category) {
+                        const combinedString = `${year}_${category}`;
+                        processCellIntersection(year, category, combinedString);
+
+                        clickedCell.classList.add('clicked');
+                        setTimeout(() => {
+                            clickedCell.classList.remove('clicked');
+                        }, 300);
+                    }
+                }
+            });
+
+            async function processCellIntersection(year, category, combinedString) {
+                console.log(`セルがクリックされました:`);
+                console.log(`  年度: ${year}`);
+                console.log(`  カテゴリ: ${category}`);
+                console.log(`  結合された文字列: "${combinedString}"`);
+
+                if (!currentPresetName || currentPresetName === 'デフォルトプリセット') {
+                    
+                    return;
+                }
+
+                const response = await window.electronAPI.createAndOpenFolder({
+                    combinedString: combinedString,
+                    presetName: currentPresetName
+                });
+
+                if (response.success) {
+                    console.log(response.message);
+                } else {
+                    console.error(response.message);
+                    alert(`フォルダ操作に失敗しました: ${response.message}`);
+                }
+            }
+            // --- プリセット管理機能（変更なし） ---
+            function updatePresetSelect() {
+                presetSelect.innerHTML = '<option value="">プリセットを選択</option>';
+                for (const name in allPresets) {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    presetSelect.appendChild(option);
+                }
+            }
+
+            async function loadPresets() {
+                const response = await window.electronAPI.loadPresets();
+                if (response.success) {
+                    allPresets = response.presets;
+                    updatePresetSelect();
+                    if (Object.keys(allPresets).length > 0 && !presetSelect.value) {
+                        const firstPresetName = Object.keys(allPresets)[0];
+                        presetSelect.value = firstPresetName;
+                        currentPresetName = firstPresetName;
+                        years = [...allPresets[firstPresetName].years];
+                        categories = [...allPresets[firstPresetName].categories];
+                        generateTable();
+                        console.log(`初期プリセット「${firstPresetName}」を読み込みました。`);
+                    } else if (Object.keys(allPresets).length === 0) {
+                        currentPresetName = 'デフォルトプリセット';
+                       
+                    }
+                } else {
+                 
+                }
+            }
+
+            await loadPresets();
+
+
+            // 新規プリセット作成ボタンのイベントリスナー
+            newPresetBtn.addEventListener('click', () => {
+                // データの初期化
+                years = [...initialYears];
+                categories = [...initialCategories];
+                currentPresetName = 'デフォルトプリセット'; // デフォルト名にリセット
+
+                // UIの初期化
+                presetNameInput.value = 'デフォルトプリセット'; // プリセット名入力欄をクリア
+                presetSelect.value = ''; // プリセット選択を未選択状態に
+                generateTable(); // テーブルを初期データで再生成
+               
+            });
+
+
+            savePresetBtn.addEventListener('click', async () => {
+                const presetName = presetNameInput.value.trim();
+                if (!presetName) {
+                  
+                    return;
+                }
+
+                allPresets[presetName] = {
+                    years: [...years],
+                    categories: [...categories]
+                };
+
+                const response = await window.electronAPI.savePresets(allPresets);
+                if (response.success) {
+                    
+                    updatePresetSelect();
+                    
+                    currentPresetName = presetName;
+                    presetSelect.value = presetName;
+                } else {
+                    
+                }
+            });
+
+            loadPresetBtn.addEventListener('click', () => {
+                const selectedPresetName = presetSelect.value;
+                if (!selectedPresetName) {
+                  
+                    return;
+                }
+
+                if (allPresets[selectedPresetName]) {
+                    years = [...allPresets[selectedPresetName].years];
+                    categories = [...allPresets[selectedPresetName].categories];
+                    currentPresetName = selectedPresetName;
+                    
+                    presetNameInput.value = selectedPresetName;
+                    generateTable();
+         
+                } else {
+                    
+                }
+            });
+
+            // --- カラム・行の追加機能（変更） ---
+            addColumnBtn.addEventListener('click', async () => {
+                // prompt() の代わりにカスタムプロンプトを使用
+                const newColName = await customPrompt('新しい列の名前を入力してください:', '例: 工程E');
+                if (newColName && newColName.trim() !== '') {
+                    years.push(newColName.trim());
+                    generateTable();
+                }
+            });
+
+            addRowBtn.addEventListener('click', async () => {
+                // prompt() の代わりにカスタムプロンプトを使用
+                const newRowName = await customPrompt('新しい行の名前を入力してください:', '例: Fさん');
+                if (newRowName && newRowName.trim() !== '') {
+                    categories.push(newRowName.trim());
+                    generateTable();
+                }
+            });
+
+            
+        });
+    </script>
+</body>
+</html>
