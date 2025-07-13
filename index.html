@@ -220,13 +220,13 @@
 </head>
 <body>
     <div class="controls">
-        <button id="newPresetBtn">新規プリセット作成</button><label for="presetNameInput">プリセット名:</label>
+        <button id="newPresetBtn">新規プリセット作成</button>
         <input type="text" id="presetNameInput" placeholder="保存プリセット名">
         <button id="savePresetBtn">プリセット保存</button>
 
-        <label for="presetSelect">プリセット選択:</label>
+        
         <select id="presetSelect"></select>
-        <button id="loadPresetBtn">プリセット読み込み</button>
+      
 
         <button id="addColumnBtn">列を追加</button>
         <button id="addRowBtn">行を追加</button>
@@ -255,7 +255,7 @@
             const presetSelect = document.getElementById('presetSelect');
             const presetNameInput = document.getElementById('presetNameInput');
             const savePresetBtn = document.getElementById('savePresetBtn');
-            const loadPresetBtn = document.getElementById('loadPresetBtn');
+         
             const addColumnBtn = document.getElementById('addColumnBtn');
             const addRowBtn = document.getElementById('addRowBtn');
             const openFolderBtn = document.getElementById('openFolderBtn');
@@ -350,6 +350,9 @@
                 table.innerHTML = headerHtml + bodyHtml;
                 addHeaderEditListeners();
                 savePresetBtn.click();
+
+                  // テーブル生成後にセルをチェック
+                checkAndStyleCells();
             }
 
             function addHeaderEditListeners() {
@@ -362,7 +365,42 @@
                 });
             }
 
+        // テーブル生成後にファイル有無チェックを行う新しい関数
+            async function checkAndStyleCells() {
+            
+                const tbody = table.querySelector('tbody');
+                if (!tbody){
+                    console.log("テーブルがないよ");
+                    return;
 
+                } 
+
+                for (const row of tbody.rows) {
+                    const category = row.querySelector('.row-header').textContent;
+                    for (const cell of row.cells) {
+                        if (cell.tagName === 'TD') {
+                            const year = years[Array.from(cell.parentNode.children).indexOf(cell) - 1]; // ヘッダーセルを除外
+                            const combinedString = `${year}_${category}`;
+
+
+                            console.log("presetName:   " + presetSelect.value + "combinedString:    " +  combinedString);
+                            // Electron APIを呼び出してファイル有無をチェック
+                            const response = await window.electronAPI.checkFolderForFiles({
+                                presetName: presetSelect.value,
+                                combinedString: combinedString
+                            });
+
+                            if (response.success && response.hasFiles) {
+                                cell.style.backgroundColor = '#009dd1'; // ファイルがある場合は水色に設定
+                                console.log("ファイルがあったよ");
+                            } else {
+                                cell.style.backgroundColor = ''; // ファイルがない場合は背景色をリセット
+                                console.log("ファイルがなかったよ");
+                            }
+                        }
+                    }
+                }
+            }
             function handleHeaderEdit(event) {
                 const cell = event.target;
                 const newName = cell.textContent.trim();
@@ -511,7 +549,7 @@
                 }
             });
 
-            loadPresetBtn.addEventListener('click', () => {
+            presetSelect.addEventListener('change', () => {
                 const selectedPresetName = presetSelect.value;
                 if (!selectedPresetName) {
                   

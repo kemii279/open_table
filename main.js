@@ -108,3 +108,22 @@ ipcMain.handle('create-and-open-folder', async (event, { combinedString, presetN
         return { success: false, message: `フォルダの操作に失敗しました: ${error.message}` };
     }
 });
+
+ipcMain.handle('check-folder-for-files', async (event, { presetName, combinedString }) => {
+    try {
+        
+        let documentsPath = app.getPath('documents')
+        const folderPath = path.join(documentsPath,"open_table", presetName, combinedString);
+        console.log("実際のパス"  + folderPath);
+        if (!fs.existsSync(folderPath)) {
+            return { success: true, hasFiles: false, message: `フォルダが見つかりません: ${folderPath}` };
+        }
+
+        const files = await fs.promises.readdir(folderPath);
+        const hasFiles = files.length > 0;
+        return { success: true, hasFiles: hasFiles, message: hasFiles ? 'ファイルが存在します。' : 'ファイルはありません。' };
+    } catch (error) {
+        console.error('フォルダ内のファイルチェック中にエラーが発生しました:', error);
+        return { success: false, message: `フォルダ内のファイルチェック中にエラーが発生しました: ${error.message}` };
+    }
+});
